@@ -1,0 +1,865 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>合約管理系統</title>
+<style>
+:root {
+  --navy: #0F2A4A;
+  --navy-mid: #1A3D6B;
+  --navy-light: #2A5A9A;
+  --ice: #B8D8E8;
+  --ice-light: #DCF0F8;
+  --ice-pale: #EDF7FC;
+  --white: #FFFFFF;
+  --text-dark: #0A1E35;
+  --text-mid: #3D5A78;
+  --text-muted: #7A9AB8;
+  --success: #1B7A4A;
+  --success-bg: #E4F4EC;
+  --warn: #8A5F10;
+  --warn-bg: #FDF3DC;
+  --danger: #8B2020;
+  --danger-bg: #FDECEC;
+  --info: #1A4A8A;
+  --info-bg: #E8F0FB;
+  --border: rgba(15,42,74,0.12);
+  --radius: 12px;
+  --radius-sm: 8px;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:-apple-system,'PingFang TC','Microsoft JhengHei',sans-serif;background:#EDF4FA;color:var(--text-dark);min-height:100vh;font-size:15px;}
+
+/* LOGIN SCREEN */
+#login-screen{display:none;position:fixed;inset:0;background:var(--navy);z-index:1000;align-items:center;justify-content:center;flex-direction:column;padding:24px;}
+#login-screen.show{display:flex;}
+.login-box{background:var(--white);border-radius:20px;padding:32px 28px;width:100%;max-width:360px;}
+.login-logo{display:flex;align-items:center;gap:10px;margin-bottom:24px;}
+.login-logo-icon{width:44px;height:44px;background:var(--navy);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:800;color:var(--ice);}
+.login-logo-text .t1{font-size:17px;font-weight:700;color:var(--navy);}
+.login-logo-text .t2{font-size:10px;color:var(--text-muted);letter-spacing:1.5px;}
+.login-title{font-size:14px;color:var(--text-muted);margin-bottom:20px;}
+.login-form-label{font-size:12px;color:var(--text-mid);font-weight:600;margin-bottom:5px;display:block;}
+.login-input{width:100%;padding:11px 14px;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:15px;color:var(--text-dark);outline:none;font-family:inherit;margin-bottom:14px;transition:border-color 0.15s;}
+.login-input:focus{border-color:var(--navy-light);}
+.login-err{font-size:12px;color:var(--danger);margin-bottom:10px;display:none;}
+.login-err.show{display:block;}
+.btn-login{width:100%;padding:13px;background:var(--navy);color:var(--ice-light);border:none;border-radius:var(--radius-sm);font-size:15px;font-weight:700;cursor:pointer;letter-spacing:0.3px;}
+.btn-login:active{background:var(--navy-mid);}
+.login-divider{text-align:center;font-size:12px;color:var(--text-muted);margin:16px 0;}
+.btn-guest{width:100%;padding:11px;background:var(--ice-pale);color:var(--navy-mid);border:1.5px solid var(--ice);border-radius:var(--radius-sm);font-size:14px;font-weight:600;cursor:pointer;}
+.btn-guest:active{background:var(--ice-light);}
+.login-hint{font-size:11px;color:var(--text-muted);text-align:center;margin-top:16px;line-height:1.6;}
+
+/* TOPBAR */
+.topbar{background:var(--navy);padding:0 14px;display:flex;align-items:center;gap:8px;height:56px;position:sticky;top:0;z-index:100;}
+.topbar-brand{display:flex;align-items:center;gap:8px;margin-right:auto;}
+.brand-icon{width:34px;height:34px;background:var(--ice);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:800;color:var(--navy);}
+.brand-text .t1{font-size:15px;font-weight:700;color:var(--white);}
+.brand-text .t2{font-size:10px;color:var(--text-muted);letter-spacing:1.5px;}
+.topbar-btns{display:flex;gap:6px;align-items:center;}
+.tbtn{padding:6px 11px;border-radius:6px;border:1px solid rgba(184,216,232,0.3);background:transparent;color:var(--ice-light);font-size:12px;cursor:pointer;white-space:nowrap;}
+.tbtn:hover{background:rgba(184,216,232,0.15);}
+.tbtn-primary{background:var(--ice);color:var(--navy);border-color:var(--ice);font-weight:700;}
+.tbtn-primary:hover{background:var(--ice-light);}
+.role-badge{padding:4px 10px;border-radius:20px;font-size:11px;font-weight:700;display:flex;align-items:center;gap:4px;}
+.role-badge.admin{background:rgba(255,204,80,0.2);color:#FFD84D;border:1px solid rgba(255,204,80,0.35);}
+.role-badge.guest{background:rgba(184,216,232,0.15);color:var(--text-muted);border:1px solid rgba(184,216,232,0.2);}
+
+/* GUEST BAR */
+.guest-bar{background:#1A3D6B;border-bottom:1px solid rgba(184,216,232,0.15);padding:9px 14px;font-size:12px;color:var(--ice);display:none;align-items:center;justify-content:space-between;gap:8px;}
+.guest-bar.show{display:flex;}
+.guest-bar a{color:#FFD84D;font-weight:600;cursor:pointer;text-decoration:none;}
+
+/* ALERT BANNERS */
+.banner{padding:9px 14px;display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:13px;}
+.banner.info{background:#FFF8E8;border-bottom:1px solid #F5D57A;color:var(--warn);}
+.banner.danger{background:#FFF0F0;border-bottom:1px solid #F5AAAA;color:var(--danger);}
+
+/* STATS */
+.stats-row{background:var(--white);border-bottom:1px solid var(--border);display:grid;grid-template-columns:repeat(4,1fr);}
+.stat-cell{padding:13px 14px;border-right:1px solid var(--border);}
+.stat-cell:last-child{border-right:none;}
+.stat-label{font-size:11px;color:var(--text-muted);margin-bottom:4px;}
+.stat-num{font-size:24px;font-weight:700;line-height:1;}
+.stat-num.green{color:var(--success);}
+.stat-num.orange{color:#C07010;}
+.stat-num.red{color:var(--danger);}
+.stat-num.navy{color:var(--navy);}
+
+/* FILTER BAR */
+.filter-bar{background:var(--white);border-bottom:1px solid var(--border);padding:10px 14px;display:flex;gap:8px;flex-wrap:wrap;align-items:center;}
+.search-wrap{flex:1;min-width:180px;position:relative;}
+.search-wrap input{width:100%;padding:8px 12px 8px 32px;border:1px solid var(--border);border-radius:var(--radius-sm);font-size:13px;background:var(--ice-pale);color:var(--text-dark);outline:none;}
+.search-wrap input:focus{border-color:var(--navy-light);background:var(--white);}
+.search-ico{position:absolute;left:9px;top:50%;transform:translateY(-50%);color:var(--text-muted);font-size:14px;pointer-events:none;}
+.filter-sel{padding:8px 9px;border:1px solid var(--border);border-radius:var(--radius-sm);font-size:13px;background:var(--white);color:var(--text-dark);cursor:pointer;outline:none;}
+.filter-sel:focus{border-color:var(--navy-light);}
+
+/* LIST */
+.list-wrap{padding:12px 14px;display:flex;flex-direction:column;gap:10px;}
+.empty-state{text-align:center;padding:48px 20px;color:var(--text-muted);background:var(--white);border-radius:var(--radius);border:1px dashed var(--border);}
+.group-header{font-size:12px;font-weight:700;color:var(--navy-mid);padding:4px 2px;margin-top:4px;display:flex;align-items:center;gap:6px;}
+.group-line{flex:1;height:1px;background:var(--border);}
+
+/* CARD */
+.contract-card{background:var(--white);border-radius:var(--radius);border:1px solid var(--border);overflow:hidden;}
+.card-accent{height:4px;}
+.card-accent.active{background:var(--navy-light);}
+.card-accent.warn{background:#E8A020;}
+.card-accent.danger{background:#C23030;}
+.card-accent.expired{background:#9A9A9A;}
+.card-body{padding:13px 14px 10px;}
+.card-header{display:flex;justify-content:space-between;align-items:flex-start;gap:8px;margin-bottom:8px;}
+.card-title-wrap{flex:1;}
+.card-title{font-size:15px;font-weight:600;color:var(--text-dark);line-height:1.3;}
+.card-no{font-size:11px;color:var(--text-muted);margin-top:1px;}
+.status-badge{font-size:11px;font-weight:600;padding:3px 9px;border-radius:20px;white-space:nowrap;flex-shrink:0;}
+.badge-active{background:var(--info-bg);color:var(--info);}
+.badge-warn{background:var(--warn-bg);color:var(--warn);}
+.badge-danger{background:var(--danger-bg);color:var(--danger);}
+.badge-expired{background:#F0F0F0;color:#666;}
+.card-meta{display:grid;grid-template-columns:1fr 1fr;gap:5px 12px;margin-top:6px;}
+.meta-item{font-size:11px;color:var(--text-muted);}
+.meta-item span{display:block;color:var(--text-mid);font-weight:500;font-size:12px;margin-top:1px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.days-row{margin-top:10px;display:flex;align-items:center;gap:8px;}
+.days-bar-wrap{flex:1;height:5px;background:var(--ice-pale);border-radius:4px;overflow:hidden;}
+.days-bar{height:100%;border-radius:4px;}
+.bar-active{background:var(--navy-light);}
+.bar-warn{background:#E8A020;}
+.bar-danger{background:#C23030;}
+.bar-expired{background:#ccc;}
+.days-label{font-size:11px;font-weight:600;white-space:nowrap;}
+.days-label.active{color:var(--navy-light);}
+.days-label.warn{color:var(--warn);}
+.days-label.danger{color:var(--danger);}
+.days-label.expired{color:#888;}
+.card-actions{border-top:1px solid var(--border);padding:7px 14px;display:flex;gap:6px;}
+.btn-sm{font-size:12px;padding:5px 12px;border-radius:6px;border:1px solid var(--border);background:transparent;color:var(--text-mid);cursor:pointer;font-weight:500;}
+.btn-sm:active{background:var(--ice-pale);}
+.btn-sm.primary{background:var(--ice-pale);color:var(--navy);border-color:var(--ice);}
+.btn-sm.del{color:var(--danger);border-color:transparent;}
+
+/* MODAL */
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(10,30,55,0.6);z-index:200;align-items:flex-end;justify-content:center;}
+.modal-overlay.open{display:flex;}
+.modal{background:var(--white);border-radius:20px 20px 0 0;width:100%;max-width:560px;max-height:93vh;overflow-y:auto;padding:8px 0 0;}
+.modal-handle{width:36px;height:4px;background:var(--border);border-radius:2px;margin:0 auto 12px;}
+.modal-head{padding:0 18px 14px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;}
+.modal-title{font-size:16px;font-weight:600;color:var(--navy);}
+.btn-close{background:var(--ice-pale);border:none;border-radius:50%;width:32px;height:32px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:16px;color:var(--text-mid);}
+.modal-body{padding:16px 18px 28px;}
+.form-section{font-size:11px;font-weight:700;color:var(--navy-light);letter-spacing:1px;text-transform:uppercase;margin:16px 0 8px;padding-bottom:4px;border-bottom:1px solid var(--ice-pale);}
+.form-section:first-child{margin-top:0;}
+.form-group{margin-bottom:11px;}
+.form-label{font-size:12px;color:var(--text-muted);font-weight:500;margin-bottom:4px;display:block;}
+.form-label .req{color:var(--danger);margin-left:2px;}
+.form-control{width:100%;padding:9px 12px;border:1px solid var(--border);border-radius:var(--radius-sm);font-size:14px;color:var(--text-dark);background:var(--white);outline:none;transition:border-color 0.15s;font-family:inherit;}
+.form-control:focus{border-color:var(--navy-light);}
+textarea.form-control{resize:vertical;min-height:65px;}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+.btn-submit{width:100%;padding:13px;background:var(--navy);color:var(--ice-light);border:none;border-radius:var(--radius-sm);font-size:15px;font-weight:600;cursor:pointer;margin-top:14px;}
+.btn-submit:active{background:var(--navy-mid);}
+
+/* DETAIL */
+.detail-section{margin-bottom:14px;}
+.detail-section-label{font-size:11px;font-weight:700;color:var(--navy-light);letter-spacing:1px;text-transform:uppercase;margin-bottom:8px;}
+.detail-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+.detail-field{background:var(--ice-pale);border-radius:var(--radius-sm);padding:8px 10px;}
+.detail-field-label{font-size:11px;color:var(--text-muted);margin-bottom:2px;}
+.detail-field-value{font-size:13px;font-weight:500;color:var(--text-dark);word-break:break-word;}
+.detail-field.full{grid-column:1/-1;}
+
+/* CHANGE PWD */
+.pwd-section{background:var(--ice-pale);border-radius:var(--radius-sm);padding:14px;margin-bottom:14px;}
+.pwd-section p{font-size:12px;color:var(--text-muted);margin-top:6px;line-height:1.6;}
+</style>
+</head>
+<body>
+
+<!-- LOGIN SCREEN -->
+<div id="login-screen" class="show">
+  <div class="login-box">
+    <div class="login-logo">
+      <div class="login-logo-icon">約</div>
+      <div class="login-logo-text">
+        <div class="t1">合約管理系統</div>
+        <div class="t2">CONTRACT LEDGER</div>
+      </div>
+    </div>
+    <div class="login-title">管理員請輸入密碼登入，或以訪客身份查閱。</div>
+
+    <label class="login-form-label">管理員密碼</label>
+    <input class="login-input" id="pwd-input" type="password" placeholder="請輸入管理員密碼" onkeydown="if(event.key==='Enter')doLogin()">
+    <div class="login-err" id="login-err">密碼錯誤，請重新輸入。</div>
+    <button class="btn-login" onclick="doLogin()">🔐 管理員登入</button>
+
+    <div class="login-divider">— 或 —</div>
+    <button class="btn-guest" onclick="enterGuest()">👁 以訪客身份查閱（唯讀）</button>
+
+    <div class="login-hint">訪客可瀏覽全部合約資料，但無法新增、編輯或刪除。<br>初始管理員密碼：<strong>admin1234</strong></div>
+  </div>
+</div>
+
+<!-- TOPBAR -->
+<div class="topbar">
+  <div class="topbar-brand">
+    <div class="brand-icon">約</div>
+    <div class="brand-text">
+      <div class="t1">合約管理系統</div>
+      <div class="t2">CONTRACT LEDGER</div>
+    </div>
+  </div>
+  <div class="topbar-btns">
+    <div class="role-badge" id="role-badge"></div>
+    <button class="tbtn" id="btn-export" onclick="exportData()" style="display:none">匯出</button>
+    <button class="tbtn" id="btn-import" onclick="openImportModal()" style="display:none">匯入</button>
+    <button class="tbtn" id="btn-settings" onclick="openSettings()" style="display:none">⚙ 設定</button>
+    <button class="tbtn tbtn-primary" id="btn-add-top" onclick="openForm()" style="display:none">＋ 新增合約</button>
+    <button class="tbtn" onclick="doLogout()">登出</button>
+  </div>
+</div>
+
+<!-- GUEST BAR -->
+<div class="guest-bar" id="guest-bar">
+  👁 訪客模式：僅供查閱，無法編輯。如需操作請 <a onclick="doLogout()">切換管理員登入</a>
+</div>
+
+<!-- ALERT BANNERS -->
+<div id="alert-area"></div>
+
+<!-- STATS -->
+<div class="stats-row">
+  <div class="stat-cell"><div class="stat-label">合約總數</div><div class="stat-num navy" id="s-total">0</div></div>
+  <div class="stat-cell"><div class="stat-label">進行中</div><div class="stat-num green" id="s-active">0</div></div>
+  <div class="stat-cell"><div class="stat-label">即將到期</div><div class="stat-num orange" id="s-warn">0</div></div>
+  <div class="stat-cell"><div class="stat-label">已逾期</div><div class="stat-num red" id="s-expired">0</div></div>
+</div>
+
+<!-- FILTER BAR -->
+<div class="filter-bar">
+  <div class="search-wrap">
+    <span class="search-ico">🔍</span>
+    <input id="search-input" type="text" placeholder="搜尋名稱、編號、公司、聯絡人、備註…" oninput="renderList()">
+  </div>
+  <select class="filter-sel" id="sel-type" onchange="renderList()">
+    <option value="">全部類別</option>
+    <option>財產保險</option><option>責任保險</option><option>人壽保險</option>
+    <option>健康保險</option><option>租賃合約</option><option>服務合約</option>
+    <option>借貸合約</option><option>其他</option>
+  </select>
+  <select class="filter-sel" id="sel-status" onchange="renderList()">
+    <option value="">全部狀態</option>
+    <option value="active">進行中</option>
+    <option value="warn">即將到期</option>
+    <option value="danger">緊急到期</option>
+    <option value="expired">已逾期</option>
+  </select>
+  <select class="filter-sel" id="sel-sort" onchange="renderList()">
+    <option value="end-asc">到期日（近→遠）</option>
+    <option value="end-desc">到期日（遠→近）</option>
+    <option value="name">合約名稱</option>
+    <option value="type">類別</option>
+  </select>
+  <select class="filter-sel" id="sel-group" onchange="renderList()">
+    <option value="">不分組</option>
+    <option value="status">依狀態分組</option>
+    <option value="type">依類別分組</option>
+    <option value="owner">依負責人分組</option>
+  </select>
+</div>
+
+<div class="list-wrap" id="contract-list"></div>
+
+<!-- ADD/EDIT MODAL (admin only) -->
+<div class="modal-overlay" id="form-modal">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-head">
+      <div class="modal-title" id="form-title">新增合約</div>
+      <button class="btn-close" onclick="closeForm()">✕</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="edit-id">
+      <div class="form-section">基本資料</div>
+      <div class="form-group">
+        <label class="form-label">合約名稱<span class="req">*</span></label>
+        <input class="form-control" id="f-name" type="text" placeholder="例：○○大樓火災保險">
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">合約類型<span class="req">*</span></label>
+          <select class="form-control" id="f-type">
+            <option value="">請選擇</option>
+            <option>財產保險</option><option>責任保險</option><option>人壽保險</option>
+            <option>健康保險</option><option>租賃合約</option><option>服務合約</option>
+            <option>借貸合約</option><option>其他</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">合約編號</label>
+          <input class="form-control" id="f-no" type="text" placeholder="例：POL-2024-001">
+        </div>
+      </div>
+      <div class="form-section">合約期間</div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">生效日期<span class="req">*</span></label>
+          <input class="form-control" id="f-start" type="date">
+        </div>
+        <div class="form-group">
+          <label class="form-label">到期日期<span class="req">*</span></label>
+          <input class="form-control" id="f-end" type="date">
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">自動續約</label>
+          <select class="form-control" id="f-renew">
+            <option value="">不確定</option>
+            <option value="yes">是</option>
+            <option value="no">否，需主動處理</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">提醒時間（天前）</label>
+          <select class="form-control" id="f-remind">
+            <option value="30">30天前</option>
+            <option value="60">60天前</option>
+            <option value="90">90天前</option>
+            <option value="14">14天前</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-section">合約要素</div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">承保／服務範圍</label>
+          <input class="form-control" id="f-scope" type="text" placeholder="例：火災、颱風、地震">
+        </div>
+        <div class="form-group">
+          <label class="form-label">標的物</label>
+          <input class="form-control" id="f-object" type="text" placeholder="例：○○路1號建物">
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">對方公司／當事人</label>
+          <input class="form-control" id="f-party" type="text" placeholder="例：富邦產險">
+        </div>
+        <div class="form-group">
+          <label class="form-label">對方聯絡人</label>
+          <input class="form-control" id="f-contact" type="text" placeholder="例：林業務 0912-xxx">
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">抵押權人</label>
+          <input class="form-control" id="f-mortgagee" type="text" placeholder="例：台灣銀行">
+        </div>
+        <div class="form-group">
+          <label class="form-label">合約金額（元）</label>
+          <input class="form-control" id="f-amount" type="number" placeholder="例：5000000">
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">負責人員</label>
+          <input class="form-control" id="f-owner" type="text" placeholder="例：王小明">
+        </div>
+        <div class="form-group">
+          <label class="form-label">保管位置</label>
+          <input class="form-control" id="f-location" type="text" placeholder="例：總務室A櫃">
+        </div>
+      </div>
+      <div class="form-section">備註</div>
+      <div class="form-group">
+        <label class="form-label">備註說明</label>
+        <textarea class="form-control" id="f-note" placeholder="其他注意事項、特別條款等…"></textarea>
+      </div>
+      <button class="btn-submit" onclick="saveContract()">儲存合約</button>
+    </div>
+  </div>
+</div>
+
+<!-- DETAIL MODAL -->
+<div class="modal-overlay" id="detail-modal">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-head">
+      <div class="modal-title" id="detail-title">合約詳情</div>
+      <button class="btn-close" onclick="closeDetail()">✕</button>
+    </div>
+    <div class="modal-body" id="detail-body"></div>
+  </div>
+</div>
+
+<!-- SETTINGS MODAL (admin only) -->
+<div class="modal-overlay" id="settings-modal">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-head">
+      <div class="modal-title">⚙ 系統設定</div>
+      <button class="btn-close" onclick="closeSettings()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-section">修改管理員密碼</div>
+      <div class="pwd-section">
+        <p>密碼儲存在此裝置。分享檔案給他人時，對方以訪客身份進入，看不到密碼。</p>
+      </div>
+      <div class="form-group">
+        <label class="form-label">現有密碼</label>
+        <input class="form-control" id="s-old-pwd" type="password" placeholder="請輸入現有密碼">
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">新密碼</label>
+          <input class="form-control" id="s-new-pwd" type="password" placeholder="新密碼（至少6位）">
+        </div>
+        <div class="form-group">
+          <label class="form-label">確認新密碼</label>
+          <input class="form-control" id="s-new-pwd2" type="password" placeholder="再輸入一次">
+        </div>
+      </div>
+      <button class="btn-submit" style="margin-top:0" onclick="changePwd()">更新密碼</button>
+
+      <div class="form-section" style="margin-top:20px">到期提醒門檻</div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">即將到期警告（天）</label>
+          <input class="form-control" id="s-warn-days" type="number" value="30" min="1" max="180">
+        </div>
+        <div class="form-group">
+          <label class="form-label">緊急到期警告（天）</label>
+          <input class="form-control" id="s-danger-days" type="number" value="14" min="1" max="60">
+        </div>
+      </div>
+      <button class="btn-submit" style="margin-top:0" onclick="saveThresholds()">儲存門檻</button>
+
+      <div class="form-section" style="margin-top:20px">資料管理</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <button class="btn-sm primary" onclick="exportData()">匯出 JSON 備份</button>
+        <button class="btn-sm" onclick="exportCSV()">匯出 CSV</button>
+        <button class="btn-sm del" onclick="clearAllData()">清除全部資料</button>
+      </div>
+      <p style="font-size:11px;color:var(--text-muted);margin-top:10px">清除後無法復原，建議先備份。</p>
+    </div>
+  </div>
+</div>
+
+<!-- IMPORT MODAL (admin only) -->
+<div class="modal-overlay" id="import-modal">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-head">
+      <div class="modal-title">📥 匯入資料</div>
+      <button class="btn-close" onclick="closeImportModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div style="background:var(--ice-pale);border-radius:var(--radius-sm);padding:12px 14px;font-size:12px;color:var(--text-muted);margin-bottom:14px;line-height:1.7">
+        支援匯入本系統匯出的 JSON 備份。匯入後將<strong>合併</strong>至現有資料（依名稱+到期日去重）。
+      </div>
+      <div style="border:2px dashed var(--border);border-radius:var(--radius-sm);padding:20px;text-align:center;font-size:13px;color:var(--text-muted);margin-bottom:12px;cursor:pointer" onclick="document.getElementById('import-file').click()">
+        📂 點擊選擇 JSON 備份檔案
+        <input type="file" id="import-file" accept=".json" style="display:none" onchange="handleImport(this)">
+      </div>
+      <div class="form-section">或手動貼入 JSON</div>
+      <textarea class="form-control" id="import-json" style="min-height:100px;font-size:12px;font-family:monospace" placeholder='[{"name":"合約名稱",...}]'></textarea>
+      <button class="btn-submit" onclick="importFromText()">確認匯入</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const STORE_KEY = 'contracts_v2';
+const CFG_KEY = 'cm_config';
+
+let contracts = [];
+let currentRole = null; // 'admin' | 'guest'
+let warnDays = 30;
+let dangerDays = 14;
+
+// ── CONFIG ──────────────────────────────────────────────
+function loadConfig() {
+  try {
+    const c = JSON.parse(localStorage.getItem(CFG_KEY)) || {};
+    warnDays = c.warnDays || 30;
+    dangerDays = c.dangerDays || 14;
+    // default hashed password = admin1234
+    if (!c.pwdHash) { c.pwdHash = simpleHash('admin1234'); saveConfig(c); }
+    return c;
+  } catch(e) { return { pwdHash: simpleHash('admin1234') }; }
+}
+
+function saveConfig(c) { localStorage.setItem(CFG_KEY, JSON.stringify(c)); }
+
+// Simple (non-cryptographic) hash for password — good enough for local HTML
+function simpleHash(str) {
+  let h = 0x811c9dc5;
+  for (let i = 0; i < str.length; i++) {
+    h ^= str.charCodeAt(i);
+    h = Math.imul(h, 0x01000193) >>> 0;
+  }
+  return h.toString(16);
+}
+
+// ── AUTH ────────────────────────────────────────────────
+function doLogin() {
+  const pwd = document.getElementById('pwd-input').value;
+  const cfg = loadConfig();
+  if (simpleHash(pwd) === cfg.pwdHash) {
+    document.getElementById('login-err').classList.remove('show');
+    enterApp('admin');
+  } else {
+    document.getElementById('login-err').classList.add('show');
+    document.getElementById('pwd-input').value = '';
+    document.getElementById('pwd-input').focus();
+  }
+}
+
+function enterGuest() { enterApp('guest'); }
+
+function enterApp(role) {
+  currentRole = role;
+  document.getElementById('login-screen').classList.remove('show');
+  const isAdmin = role === 'admin';
+
+  // role badge
+  const badge = document.getElementById('role-badge');
+  badge.className = 'role-badge ' + role;
+  badge.innerHTML = isAdmin ? '🔑 管理員' : '👁 訪客';
+
+  // guest bar
+  document.getElementById('guest-bar').classList.toggle('show', !isAdmin);
+
+  // admin-only buttons
+  document.getElementById('btn-export').style.display = isAdmin ? '' : 'none';
+  document.getElementById('btn-import').style.display = isAdmin ? '' : 'none';
+  document.getElementById('btn-settings').style.display = isAdmin ? '' : 'none';
+  document.getElementById('btn-add-top').style.display = isAdmin ? '' : 'none';
+
+  // load thresholds
+  const cfg = loadConfig();
+  warnDays = cfg.warnDays || 30;
+  dangerDays = cfg.dangerDays || 14;
+  document.getElementById('s-warn-days').value = warnDays;
+  document.getElementById('s-danger-days').value = dangerDays;
+
+  loadContracts();
+  render();
+}
+
+function doLogout() {
+  currentRole = null;
+  document.getElementById('pwd-input').value = '';
+  document.getElementById('login-err').classList.remove('show');
+  document.getElementById('login-screen').classList.add('show');
+  closeAll();
+}
+
+// ── DATA ────────────────────────────────────────────────
+function loadContracts() {
+  try { contracts = JSON.parse(localStorage.getItem(STORE_KEY)) || []; }
+  catch(e) { contracts = []; }
+  if (contracts.length === 0) seedData();
+}
+
+function saveContracts() { localStorage.setItem(STORE_KEY, JSON.stringify(contracts)); }
+
+function seedData() {
+  const today = new Date();
+  const d = offset => { const dt = new Date(today); dt.setDate(dt.getDate()+offset); return dt.toISOString().split('T')[0]; };
+  contracts = [
+    { id:1, name:'○○大樓火災保險', type:'財產保險', no:'POL-2024-001', start:d(-300), end:d(65), scope:'火災、閃電、爆炸', object:'忠孝東路1號建物', party:'富邦產險', contact:'林業務 02-1234-5678', mortgagee:'台灣銀行', amount:5000000, owner:'王小明', location:'總務室A櫃', renew:'yes', remind:'30', note:'每年自動續保，需提前確認保額是否調整。' },
+    { id:2, name:'辦公室租賃合約', type:'租賃合約', no:'RENT-2023-005', start:d(-400), end:d(18), scope:'辦公室使用權', object:'信義路100號3F', party:'○○地產股份有限公司', contact:'陳主任 0912-345-678', mortgagee:'', amount:1200000, owner:'李小華', location:'總務室B櫃', renew:'no', remind:'30', note:'到期需協商續租或搬遷，房東需提前2個月通知。' },
+    { id:3, name:'員工團體健康保險', type:'健康保險', no:'GRP-2024-011', start:d(-60), end:d(305), scope:'住院、手術、門診', object:'全體正職員工', party:'南山人壽', contact:'張專員 03-999-8888', mortgagee:'', amount:800000, owner:'陳美玲', location:'人事室', renew:'yes', remind:'60', note:'員工人數異動需通知保險公司調整名冊。' },
+    { id:4, name:'網路設備維護服務合約', type:'服務合約', no:'SVC-2024-033', start:d(-180), end:d(-5), scope:'設備維修、緊急救援24H', object:'公司全部網路設備', party:'科技服務股份有限公司', contact:'陳工程師 0988-111-222', mortgagee:'', amount:120000, owner:'張建宏', location:'IT部門', renew:'no', remind:'30', note:'已到期，請盡速聯繫廠商確認是否續約。' },
+    { id:5, name:'廠房設備機械保險', type:'財產保險', no:'MCH-2024-007', start:d(-200), end:d(11), scope:'機械故障、操作疏失', object:'桃園廠CNC設備×8台', party:'台灣產物保險', contact:'黃業務 03-555-0101', mortgagee:'合作金庫', amount:3500000, owner:'王小明', location:'廠務室', renew:'no', remind:'30', note:'需附上設備清單異動記錄，機台序號見附件。' },
+    { id:6, name:'公司責任險', type:'責任保險', no:'LIA-2024-002', start:d(-90), end:d(275), scope:'公共意外責任、雇主責任', object:'全公司營業活動', party:'國泰世紀產險', contact:'周業務 02-8888-9999', mortgagee:'', amount:2000000, owner:'陳美玲', location:'總務室A櫃', renew:'yes', remind:'30', note:'' },
+  ];
+  saveContracts();
+}
+
+// ── RENDER ───────────────────────────────────────────────
+function getDaysLeft(end) {
+  const today = new Date(); today.setHours(0,0,0,0);
+  return Math.ceil((new Date(end) - today) / 86400000);
+}
+function getStatus(days) {
+  if (days < 0) return 'expired';
+  if (days <= dangerDays) return 'danger';
+  if (days <= warnDays) return 'warn';
+  return 'active';
+}
+const SL = { active:'進行中', warn:'即將到期', danger:'緊急到期', expired:'已逾期' };
+function formatDate(d) { return d ? d.replace(/-/g,'/') : '—'; }
+function formatAmt(n) { return n ? Number(n).toLocaleString('zh-TW')+' 元' : '—'; }
+function barPct(days, start, end) {
+  if (days < 0) return 100;
+  const total = Math.max(1, Math.ceil((new Date(end)-new Date(start))/86400000));
+  const used = Math.ceil((new Date()-new Date(start))/86400000);
+  return Math.min(100, Math.max(0, Math.round(used/total*100)));
+}
+
+function renderAlerts() {
+  const urgents = contracts.filter(c => { const d=getDaysLeft(c.end); return d>=0 && d<=warnDays; });
+  const expired = contracts.filter(c => getDaysLeft(c.end)<0);
+  let html = '';
+  if (expired.length) html += `<div class="banner danger">⚠ 共 ${expired.length} 份合約已逾期，請儘速處理續約。</div>`;
+  if (urgents.length) html += `<div class="banner info">🔔 共 ${urgents.length} 份合約將於 ${warnDays} 天內到期，請提前確認。</div>`;
+  document.getElementById('alert-area').innerHTML = html;
+}
+
+function renderStats() {
+  const act = contracts.filter(c => getDaysLeft(c.end) > warnDays).length;
+  const wrn = contracts.filter(c => { const d=getDaysLeft(c.end); return d>=0 && d<=warnDays; }).length;
+  const exp = contracts.filter(c => getDaysLeft(c.end)<0).length;
+  document.getElementById('s-total').textContent = contracts.length;
+  document.getElementById('s-active').textContent = act;
+  document.getElementById('s-warn').textContent = wrn;
+  document.getElementById('s-expired').textContent = exp;
+}
+
+function filtered() {
+  const q = document.getElementById('search-input').value.trim().toLowerCase();
+  const type = document.getElementById('sel-type').value;
+  const status = document.getElementById('sel-status').value;
+  const sort = document.getElementById('sel-sort').value;
+  let list = contracts.slice();
+  if (q) list = list.filter(c => [c.name,c.no,c.party,c.contact,c.owner,c.note,c.object,c.scope].join('§').toLowerCase().includes(q));
+  if (type) list = list.filter(c => c.type===type);
+  if (status) list = list.filter(c => getStatus(getDaysLeft(c.end))===status);
+  if (sort==='end-asc') list.sort((a,b)=>getDaysLeft(a.end)-getDaysLeft(b.end));
+  else if (sort==='end-desc') list.sort((a,b)=>getDaysLeft(b.end)-getDaysLeft(a.end));
+  else if (sort==='name') list.sort((a,b)=>a.name.localeCompare(b.name,'zh-TW'));
+  else if (sort==='type') list.sort((a,b)=>(a.type||'').localeCompare(b.type||'','zh-TW'));
+  return list;
+}
+
+function cardHtml(c) {
+  const days = getDaysLeft(c.end);
+  const st = getStatus(days);
+  const pct = barPct(days, c.start, c.end);
+  const daysText = days<0?`已逾期 ${Math.abs(days)} 天`:days===0?'今日到期':`剩 ${days} 天`;
+  const isAdmin = currentRole==='admin';
+  return `<div class="contract-card">
+    <div class="card-accent ${st}"></div>
+    <div class="card-body">
+      <div class="card-header">
+        <div class="card-title-wrap">
+          <div class="card-title">${c.name}</div>
+          ${c.no?`<div class="card-no">${c.no}</div>`:''}
+        </div>
+        <span class="status-badge badge-${st}">${SL[st]}</span>
+      </div>
+      <div class="card-meta">
+        <div class="meta-item">類型<span>${c.type||'—'}</span></div>
+        <div class="meta-item">對方<span>${c.party||'—'}</span></div>
+        <div class="meta-item">到期日<span>${formatDate(c.end)}</span></div>
+        <div class="meta-item">負責<span>${c.owner||'—'}</span></div>
+        ${c.mortgagee?`<div class="meta-item">抵押權人<span>${c.mortgagee}</span></div>`:''}
+        ${c.object?`<div class="meta-item">標的物<span>${c.object}</span></div>`:''}
+      </div>
+      <div class="days-row">
+        <div class="days-bar-wrap"><div class="days-bar bar-${st}" style="width:${pct}%"></div></div>
+        <div class="days-label ${st}">${daysText}</div>
+      </div>
+    </div>
+    <div class="card-actions">
+      <button class="btn-sm primary" onclick="viewDetail(${c.id})">查看詳情</button>
+      ${isAdmin?`<button class="btn-sm" onclick="openEdit(${c.id})">編輯</button>`:''}
+      ${isAdmin?`<button class="btn-sm del" onclick="deleteContract(${c.id})">刪除</button>`:''}
+    </div>
+  </div>`;
+}
+
+function renderList() {
+  const list = filtered();
+  const gk = document.getElementById('sel-group').value;
+  const el = document.getElementById('contract-list');
+  if (!list.length) { el.innerHTML = `<div class="empty-state">📄 找不到符合條件的合約</div>`; return; }
+  if (!gk) { el.innerHTML = list.map(cardHtml).join(''); return; }
+  const groups = {};
+  list.forEach(c => {
+    const k = gk==='status'?SL[getStatus(getDaysLeft(c.end))]:gk==='type'?(c.type||'未分類'):(c.owner||'未指定');
+    if (!groups[k]) groups[k]=[];
+    groups[k].push(c);
+  });
+  el.innerHTML = Object.entries(groups).map(([label,items])=>
+    `<div class="group-header"><span>${label}（${items.length}）</span><div class="group-line"></div></div>`+items.map(cardHtml).join('')
+  ).join('');
+}
+
+function render() { renderStats(); renderAlerts(); renderList(); }
+
+// ── FORM ─────────────────────────────────────────────────
+const FLDS = ['name','type','no','start','end','scope','object','party','contact','mortgagee','amount','owner','location','renew','remind','note'];
+
+function openForm() {
+  document.getElementById('form-title').textContent = '新增合約';
+  document.getElementById('edit-id').value = '';
+  FLDS.forEach(f => { const el=document.getElementById('f-'+f); if(el) el.value=''; });
+  document.getElementById('f-remind').value = '30';
+  document.getElementById('form-modal').classList.add('open');
+}
+function openEdit(id) {
+  const c = contracts.find(x=>x.id===id); if(!c) return;
+  document.getElementById('form-title').textContent = '編輯合約';
+  document.getElementById('edit-id').value = id;
+  FLDS.forEach(f => { const el=document.getElementById('f-'+f); if(el) el.value=c[f]||''; });
+  document.getElementById('form-modal').classList.add('open');
+}
+function closeForm() { document.getElementById('form-modal').classList.remove('open'); }
+
+function saveContract() {
+  const name = document.getElementById('f-name').value.trim();
+  const type = document.getElementById('f-type').value;
+  const start = document.getElementById('f-start').value;
+  const end = document.getElementById('f-end').value;
+  if (!name||!type||!start||!end) { alert('請填寫合約名稱、類型及起訖日期！'); return; }
+  if (end<=start) { alert('到期日需晚於生效日！'); return; }
+  const id = document.getElementById('edit-id').value;
+  const obj = { id: id ? Number(id) : Date.now() };
+  FLDS.forEach(f => { const el=document.getElementById('f-'+f); obj[f]=el?el.value.trim():''; });
+  if (id) { const i=contracts.findIndex(x=>x.id===Number(id)); if(i>-1) contracts[i]=obj; }
+  else contracts.push(obj);
+  saveContracts(); closeForm(); render();
+}
+
+// ── DETAIL ───────────────────────────────────────────────
+function viewDetail(id) {
+  const c = contracts.find(x=>x.id===id); if(!c) return;
+  const days = getDaysLeft(c.end);
+  const st = getStatus(days);
+  const daysText = days<0?`已逾期 ${Math.abs(days)} 天`:days===0?'今日到期':`剩餘 ${days} 天`;
+  const renewText = ({yes:'是（自動續保）',no:'否，需主動處理','':'不確定'})[c.renew||''];
+  const isAdmin = currentRole==='admin';
+  document.getElementById('detail-title').textContent = c.name;
+  document.getElementById('detail-body').innerHTML = `
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px;flex-wrap:wrap">
+      <span class="status-badge badge-${st}" style="font-size:13px;padding:5px 12px">${SL[st]}</span>
+      <span style="font-size:13px;color:var(--text-muted)">${daysText}</span>
+      ${c.no?`<span style="font-size:12px;background:var(--ice-pale);padding:4px 10px;border-radius:20px;color:var(--navy)">${c.no}</span>`:''}
+    </div>
+    <div class="detail-section">
+      <div class="detail-section-label">基本資料</div>
+      <div class="detail-grid">
+        <div class="detail-field"><div class="detail-field-label">合約類型</div><div class="detail-field-value">${c.type||'—'}</div></div>
+        <div class="detail-field"><div class="detail-field-label">自動續約</div><div class="detail-field-value">${renewText}</div></div>
+        <div class="detail-field"><div class="detail-field-label">生效日期</div><div class="detail-field-value">${formatDate(c.start)}</div></div>
+        <div class="detail-field"><div class="detail-field-label">到期日期</div><div class="detail-field-value">${formatDate(c.end)}</div></div>
+        <div class="detail-field"><div class="detail-field-label">負責人員</div><div class="detail-field-value">${c.owner||'—'}</div></div>
+        <div class="detail-field"><div class="detail-field-label">保管位置</div><div class="detail-field-value">${c.location||'—'}</div></div>
+      </div>
+    </div>
+    <div class="detail-section">
+      <div class="detail-section-label">合約要素</div>
+      <div class="detail-grid">
+        <div class="detail-field full"><div class="detail-field-label">承保／服務範圍</div><div class="detail-field-value">${c.scope||'—'}</div></div>
+        <div class="detail-field full"><div class="detail-field-label">標的物</div><div class="detail-field-value">${c.object||'—'}</div></div>
+        <div class="detail-field"><div class="detail-field-label">對方公司／當事人</div><div class="detail-field-value">${c.party||'—'}</div></div>
+        <div class="detail-field"><div class="detail-field-label">對方聯絡人</div><div class="detail-field-value">${c.contact||'—'}</div></div>
+        <div class="detail-field"><div class="detail-field-label">抵押權人</div><div class="detail-field-value">${c.mortgagee||'—'}</div></div>
+        <div class="detail-field"><div class="detail-field-label">合約金額</div><div class="detail-field-value">${formatAmt(c.amount)}</div></div>
+      </div>
+    </div>
+    ${c.note?`<div class="detail-section"><div class="detail-section-label">備註</div><div class="detail-field full"><div class="detail-field-value">${c.note}</div></div></div>`:''}
+    ${isAdmin?`<div style="display:flex;gap:8px;margin-top:4px">
+      <button class="btn-sm primary" style="flex:1;padding:11px" onclick="closeDetail();openEdit(${c.id})">✎ 編輯合約</button>
+      <button class="btn-sm del" style="padding:11px 16px" onclick="deleteContract(${c.id})">刪除</button>
+    </div>`:`<p style="font-size:12px;color:var(--text-muted);text-align:center;margin-top:8px">👁 訪客模式，僅供查閱</p>`}
+  `;
+  document.getElementById('detail-modal').classList.add('open');
+}
+function closeDetail() { document.getElementById('detail-modal').classList.remove('open'); }
+
+function deleteContract(id) {
+  if (!confirm('確定要刪除此合約？此動作無法復原。')) return;
+  contracts = contracts.filter(c=>c.id!==id);
+  saveContracts(); closeDetail(); render();
+}
+
+// ── SETTINGS ─────────────────────────────────────────────
+function openSettings() { document.getElementById('settings-modal').classList.add('open'); }
+function closeSettings() { document.getElementById('settings-modal').classList.remove('open'); }
+
+function changePwd() {
+  const cfg = loadConfig();
+  const oldPwd = document.getElementById('s-old-pwd').value;
+  const newPwd = document.getElementById('s-new-pwd').value;
+  const newPwd2 = document.getElementById('s-new-pwd2').value;
+  if (simpleHash(oldPwd) !== cfg.pwdHash) { alert('現有密碼錯誤！'); return; }
+  if (newPwd.length < 6) { alert('新密碼至少需要6位！'); return; }
+  if (newPwd !== newPwd2) { alert('兩次新密碼不一致！'); return; }
+  cfg.pwdHash = simpleHash(newPwd);
+  saveConfig(cfg);
+  ['s-old-pwd','s-new-pwd','s-new-pwd2'].forEach(id => document.getElementById(id).value='');
+  alert('密碼已更新！');
+}
+
+function saveThresholds() {
+  const cfg = loadConfig();
+  warnDays = parseInt(document.getElementById('s-warn-days').value)||30;
+  dangerDays = parseInt(document.getElementById('s-danger-days').value)||14;
+  cfg.warnDays = warnDays; cfg.dangerDays = dangerDays;
+  saveConfig(cfg); render(); alert('門檻設定已儲存！');
+}
+
+function clearAllData() {
+  if (!confirm('確定清除所有合約資料？無法復原！')) return;
+  contracts = []; saveContracts(); closeSettings(); render();
+}
+
+// ── EXPORT / IMPORT ──────────────────────────────────────
+function exportData() {
+  const blob = new Blob([JSON.stringify(contracts,null,2)],{type:'application/json'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `contracts_backup_${new Date().toISOString().split('T')[0]}.json`;
+  a.click();
+}
+function exportCSV() {
+  const headers = ['合約名稱','類型','編號','生效日','到期日','自動續約','承保範圍','標的物','對方公司','聯絡人','抵押權人','金額','負責人','保管位置','備註'];
+  const keys = ['name','type','no','start','end','renew','scope','object','party','contact','mortgagee','amount','owner','location','note'];
+  const rows = contracts.map(c=>keys.map(k=>`"${(c[k]||'').toString().replace(/"/g,'""')}"`).join(','));
+  const csv = '\uFEFF'+[headers.join(','),...rows].join('\n');
+  const blob = new Blob([csv],{type:'text/csv;charset=utf-8'});
+  const a = document.createElement('a'); a.href=URL.createObjectURL(blob);
+  a.download = `contracts_${new Date().toISOString().split('T')[0]}.csv`; a.click();
+}
+function openImportModal() { document.getElementById('import-modal').classList.add('open'); }
+function closeImportModal() { document.getElementById('import-modal').classList.remove('open'); }
+function handleImport(input) {
+  const file = input.files[0]; if(!file) return;
+  const reader = new FileReader();
+  reader.onload = e => { document.getElementById('import-json').value = e.target.result; };
+  reader.readAsText(file);
+}
+function importFromText() {
+  try {
+    const data = JSON.parse(document.getElementById('import-json').value);
+    if (!Array.isArray(data)) throw new Error();
+    let added = 0;
+    data.forEach(item => {
+      if (!item.name||!item.end) return;
+      if (!contracts.some(c=>c.name===item.name&&c.end===item.end)) {
+        item.id = item.id||Date.now()+Math.random(); contracts.push(item); added++;
+      }
+    });
+    saveContracts(); closeImportModal(); render();
+    alert(`匯入完成！新增 ${added} 份合約。`);
+  } catch(e) { alert('JSON 格式有誤，請確認後重試。'); }
+}
+
+// ── UTILS ────────────────────────────────────────────────
+function closeAll() {
+  ['form-modal','detail-modal','settings-modal','import-modal'].forEach(id=>document.getElementById(id).classList.remove('open'));
+}
+
+['form-modal','detail-modal','settings-modal','import-modal'].forEach(id=>{
+  document.getElementById(id).addEventListener('click',function(e){ if(e.target===this) this.classList.remove('open'); });
+});
+</script>
+</body>
+</html>
